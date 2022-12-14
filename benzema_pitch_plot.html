@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+    <style>
+        @font-face { font-family: Montserrat; src: url('fonts/Montserrat-Medium.ttf'); } 
+        #pn_container {
+          font-weight: none;
+          font-family: Montserrat, Sans-Serif;
+        }
+
+        p#h1 {
+            font-size: 30px;
+            margin-top: 7px;
+            margin-bottom: 2px;
+            text-align: center;
+            color: black;
+            font-weight: Bold;
+        }
+        p#h2 { 
+            font-size: 18px;
+            margin-top: 0;
+            margin-bottom: 7px;
+            text-align: center;
+            color: black;
+        }
+        
+        .link {
+            fill: white;
+            stroke: grey;
+            stroke-width: 1.5px;
+            visibility: hidden;
+            opacity: 0.75;
+        }
+        .path {
+            stroke: rgb(64,64,64);
+        }
+        
+        .node {
+          fill: rgb(1,118,190);
+          stroke: black;
+          stroke-width: 1.5px;
+        }
+
+        .clicked_node {
+            fill:green;
+            stroke: white;
+            stroke-width: 5px;
+        }
+
+        .label {
+            color: white;
+        }
+        svg {
+            display: block;
+            margin: auto;
+            padding-top: 15px;
+        }
+        
+        #node_tooltip, #link_tooltip {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: auto;
+            visibility: hidden;
+            font-size: 10px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 3px;
+            text-align: left;
+            color: black;
+            font-size: 14px;
+        }
+        #key{
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: auto;
+            visibility: hidden;
+            font-size: 10px;
+            background-color: transparent;
+            padding: 10px;
+            border-radius: 3px;
+            text-align: left;
+            color: rgb(144,144,144);
+            font-size: 14px;
+        }
+        .field {
+            fill: transparent;
+            stroke: rgb(60,60,60);
+            stroke-width: 4px;
+        }
+        p#tag {
+            font-weight: bold;
+            color: rgb(94,94,94);
+            text-align: center;
+            margin-top: 10px;
+            padding-bottom: 15px;
+        }
+        #france {
+            position: absolute;
+            right: 170px;
+            top: 10px;
+            width: 70px;
+        }
+</style>
+    
+<script src="https://d3js.org/d3.v4.js"></script>
+<script>
+    
+    function vizInit() {
+
+        var links; // initiate variable for the links/passing data
+        var nodes; // initiate variable for the node/player data
+        
+        var width = d3.min([window.innerWidth])/2 // scalable width based on window size
+        var height = width*.654 + 2// scalable height for svg in proportion for pitch size
+        
+        function getData(filter) {
+            // This function gets the data and calls the drawing functions
+            // add_zones()
+            // add_zones();
+
+            d3.csv("https://raw.githubusercontent.com/liamMichaelBailey/heat-map-data/master/heatmap.csv", function(d) {
+                zones = d;
+                console.log(zones)
+                draw_zones(filter); // call the node-drawing function
+                draw_field();
+            });
+        }
+              
+        function draw_field(){
+            // This function draws all of the field elements
+            
+            // Set the width/height
+            d3.select("#networkChart1")
+                .attr('width', width)
+                .attr('height', height)
+                .attr('transform', 'rotate(270 0 0)');
+            
+            // Field Perimeter
+            d3.select("#networkChart1").append("rect")
+                .attr("class", "field")
+                .attr("x", 1)
+                .attr("y", 1)
+                .attr("width", width-2)
+                .attr("height", width * .654)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+            // Midfield line
+            d3.select("#networkChart1").append("rect")
+                .attr("class", "field")
+                .attr("x", 1)
+                .attr("y", 1)
+                .attr("width", (width-2)/2)
+                .attr("height", width * .654)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");;
+            // 18-yard arc left
+            d3.select("#networkChart1").append("path") //"line"
+                .attr("class", 'field')
+                .style("fill", "none")
+                .attr("d", function(d){
+                    x1 = (16.5/104)*width;
+                    y1 = (26.5/104)*width;
+                    x2 = (16.5/104)*width;
+                    y2 = y1 + (15/104)*width;
+                    xc = (16.5/104)*width + (7.56/104)*width;
+                    yc = (y1 + y2) / 2
+                    path = "M" + x1.toString() + "," + y1.toString() + " Q" + xc.toString() + "," + yc.toString() + " " + x2.toString() + "," + y2.toString();
+
+                    return path
+                })
+                .style("stroke-width", (width/1265) * 4 + "px");
+            // 18-yard arc right
+            d3.select("#networkChart1").append("path") //"line"
+                .attr("class", 'field')
+                .style("fill", "none")
+                .attr("d", function(d){
+                    x1 = (87.5/104)*width;
+                    y1 = (26.5/104)*width;
+                    x2 = (87.5/104)*width;
+                    y2 = y1 + (15/104)*width;
+                    xc = (87.5/104)*width - (7.56/104)*width;
+                    yc = (y1 + y2) / 2
+                    path = "M" + x1.toString() + "," + y1.toString() + " Q" + xc.toString() + "," + yc.toString() + " " + x2.toString() + "," + y2.toString();
+                    
+                    return path
+                })
+                .style("stroke-width", (width/1265) * 4 + "px");
+            // 18-yard box left
+            d3.select("#networkChart1").append("rect")
+                .attr("class", "field")
+                .attr("x", 1)
+                .attr("y", (13.84/104)*width)
+                .attr("width", (16.5/104)*width)
+                .attr("height", (40.32/104)*width)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+            // 18-yard box right
+            d3.select("#networkChart1").append("rect")
+                .attr("class", "field")
+                .attr("x", (87.5/104)*width)
+                .attr("y", (13.84/104)*width)
+                .attr("width", (16.5/104)*width)
+                .attr("height", (40.32/104)*width)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+            // 5-yard box left
+            d3.select("#networkChart1").append("rect")
+                .attr("class", "field")
+                .attr("x", 1)
+                .attr("y", (24.84/104)*width)
+                .attr("width", (5.5/104)*width)
+                .attr("height", (18.32/104)*width)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+            // 5-yard box right
+            d3.select("#networkChart1").append("rect")
+                .attr("class", "field")
+                .attr("x", (98.5/104)*width)
+                .attr("y", (24.84/104)*width)
+                .attr("width", (5.5/104)*width)
+                .attr("height", (18.32/104)*width)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+            // Center-Circle
+            d3.select("#networkChart1").append("circle")
+                .attr("class", "field")
+                .attr("cx", width/2)
+                .attr("cy", (width*.654)/2)
+                .attr("r", (9.15/104)*width)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+            // Center mark
+            d3.select("#networkChart1").append("circle")
+                .attr("class", "field")
+                .attr("cx", width/2)
+                .attr("cy", (width*.654)/2)
+                .attr("r", (.5/104)*width)
+                .style("fill","rgb(60,60,60)")
+                .style("stroke-width", (width/1265) * 4 + "px");
+            // Penalty mark left
+            d3.select("#networkChart1").append("circle")
+                .attr("class", "field")
+                .attr("cx", (11/104)*width)
+                .attr("cy", (width*.654)/2)
+                .attr("r", (.5/104)*width)
+                .style("fill","rgb(60,60,60)")
+                .style("stroke-width", (width/1265) * 4 + "px");
+            // Penalty mark right
+            d3.select("#networkChart1").append("circle")
+                .attr("class", "field")
+                .attr("cx", (93/104)*width)
+                .attr("cy", (width*.654)/2)
+                .attr("r", (.5/104)*width)
+                .style("fill","rgb(60,60,60)")
+                .style("stroke-width", (width/1265) * 4 + "px");
+            // Corner arc top left
+            d3.select("#networkChart1").append("circle")
+                .attr("class", "field")
+                .attr("cx", 1)
+                .attr("cy", 1)
+                .attr("r", (2/104)*width)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+            // Corner arc bottom left
+            d3.select("#networkChart1").append("circle")
+                .attr("class", "field")
+                .attr("cx", 1)
+                .attr("cy", width * .654)
+                .attr("r", (2/104)*width)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+            // Corner arc top right
+            d3.select("#networkChart1").append("circle")
+                .attr("class", "field")
+                .attr("cx", width-2)
+                .attr("cy", 1)
+                .attr("r", (2/104)*width)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+            // Corner arc bottom right
+            d3.select("#networkChart1").append("circle")
+                .attr("class", "field")
+                .attr("cx", width-2)
+                .attr("cy", width * .654)
+                .attr("r", (2/104)*width)
+                .style("stroke-width", (width/1265) * 4 + "px")
+                .style("fill", "none");
+        }
+        
+
+        function add_zones(){
+            // create svg element:
+            var svg = d3.select("#networkChart1")
+                .attr('width', width)
+                .attr('height', height);
+
+            // Zone 12
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*0)
+            .attr('y', (height/5)*0)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*1.015)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+
+            // Zone 9
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*0)
+            .attr('y', (height/5)*1.015)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*0.8)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+            
+            // Zone 6
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*0)
+            .attr('y', (height/5)*1.815)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*1.35)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+            
+            // Zone 3
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*0)
+            .attr('y', (height/5)*3.165)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*0.8)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+
+            // Zone 0
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*0)
+            .attr('y', (height/5)*3.97)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*1.1)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+
+            // Zone 13
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*1)
+            .attr('y', (height/5)*0)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*1.015)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+            
+            // Zone 10
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*1)
+            .attr('y', (height/5)*1.015)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*0.8)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+
+            // Zone 7
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*1)
+            .attr('y', (height/5)*1.815)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*1.35)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+
+            // Zone 4
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*1)
+            .attr('y', (height/5)*3.165)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*0.8)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+            
+            // Zone 1
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*1)
+            .attr('y', (height/5)*3.97)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*1.1)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+
+            // Zone 14
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*2)
+            .attr('y', (height/5)*0)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*1.1)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+
+            // Zone 11
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*2)
+            .attr('y', (height/5)*1.015)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*0.8)
+            .attr('stroke', 'black')
+            .attr('fill', 'red')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+
+            // Zone 8
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*2)
+            .attr('y', (height/5)*1.815)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*1.35)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+
+            // Zone 5
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*2)
+            .attr('y', (height/5)*3.165)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*0.8)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+            // Zone 2
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr('x', (width/3)*2)
+            .attr('y', (height/5)*3.97)
+            .attr('width', (width/3))
+            .attr('height', (height/5)*1.1)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+            // Zone 17
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr("x", (width/3)*2.525)
+            .attr('y', (height/5)*1.015)
+            .attr("width", (width/3))
+            .attr('height', (height/5)*0.8)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+            // Zone 16
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr("x", (width/3)*2.525)
+            .attr('y', (height/5)*1.815)
+            .attr("width", (width/3))
+            .attr('height', (height/5)*1.35)
+            .attr('stroke', 'black')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+            // Zone 15
+            d3.select("#networkChart1").append("rect")
+            .attr("class", 'zone')
+            .attr("x", (width/3)*2.525)
+            .attr('y', (height/5)*3.165)
+            .attr("width", (width/3))
+            .attr('height', (height/5)*0.8)
+            .attr('stroke', 'none')
+            .attr('fill', 'white')
+            .style("stroke-dasharray", ("3, 3"))
+            .on("mouseover", handleMouseOver) // mouse over interaction
+            .on("mouseout", handleMouseOut); // mouse out interaction
+
+        }
+        
+        function draw_zones(filter){
+            // This function draws the pitch zones
+            var svg = d3.select("#networkChart1")
+                .attr('width', width)
+                .attr('height', height);
+
+                // Zone 12
+            var rects = svg.selectAll(".zone")
+                .data(zones)
+                .enter()
+                .append("rect")
+                .attr("class", 'zone')
+                .attr("zoneId", function(d){
+                    return d.zone;
+                })
+                .attr("x", function(d){
+                    return ((width/3)*d.x);
+                })
+                .attr("y", function(d){
+                    return ((width/5)*d.y)/1.525;
+                })
+                .attr('width', (width/3))
+                .attr("height", function(d){
+                    return ((width/5)*d.height)/1.525;
+                })
+                .attr('stroke', 'black')
+                .attr("fill", function(d){
+                    if (d[filter] == 0){return ("#a7d5ed");}
+                    if (d[filter] > 10){return ("#c23728");}
+                    if (d[filter] > 7){return ("#e14b31");}
+                    if (d[filter] > 5){return ("#de6e56");}
+                    if (d[filter] > 2){return ("#e1a692");}
+                    if (d[filter] > 0){return ("#e2e2e2");}
+                })
+                .style("stroke-dasharray", ("3, 3"))
+                .style("stroke-width", (width/1265) + "px")
+                .on("mouseover", handleMouseOver) // mouse over interaction
+                .on("mouseout", handleMouseOut); // mouse out interaction
+    
+        }
+
+        function fill_zones(filter){
+            var svg = d3.select("#networkChart1")
+                .attr('width', width)
+                .attr('height', height);
+
+                // Zone 12
+            var rects = svg.selectAll(".zone")
+
+        }
+
+        function drawBarChart(filter, width, height){
+                    // set the dimensions and margins of the graph
+            var margin = {top: 10, right: 30, bottom: 90, left: 40}
+            
+            // append the svg object to the body of the page
+            var svg = d3.select("#my_dataviz")
+            .append("svg")
+                .attr("width", width + margin.right + margin.left) 
+                .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+                .attr("transform",
+                    "translate(" + margin.left + "," + margin.top + ")");
+
+            // Parse the Data
+            d3.csv("https://raw.githubusercontent.com/liamMichaelBailey/heat-map-data/main/barchart.csv", function(data) {
+
+            // X axis
+            var x = d3.scaleBand()
+            .range([ 0, width ])
+            .domain(data.map(function(d) { return d['run type']; }))
+            .padding(0.2);
+            svg.append("g")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x))
+            .selectAll("text")
+                .attr("transform", "translate(-10,0)rotate(-45)")
+                .style("text-anchor", "end");
+
+            // Add Y axis
+            var y = d3.scaleLinear()
+            .domain([0, 8])
+            .range([ height, 0]);
+            svg.append("g")
+            .call(d3.axisLeft(y));
+
+            // Bars
+            svg.selectAll("mybar")
+            .data(data)
+            .enter()
+            .append("rect")
+                .attr("type", function(d) { return d['run type']; })
+                .attr("x", function(d) { return x(d['run type']); })
+                .attr("width", x.bandwidth())
+                .attr("fill", "#80CBA2")
+                // no bar at the beginning thus:
+                .attr("height", function(d) { return height - y(0); }) // always equal to 0
+                .attr("y", function(d) { return y(0); })
+                .on("mouseover", onBarMouseOver) //Add listener for the mouseover event
+                .on("mouseout", onBarMouseOut) 
+
+            // Animation
+            svg.selectAll("rect")
+            .transition()
+            .duration(600)
+            .attr("y", function(d) { return y(d[filter]); })
+            .attr("height", function(d) { return height - y(d[filter]); })
+            })
+        }
+        
+        //mouseover event handler function
+        function onBarMouseOver(d) {
+            d3.select(this).attr("fill", "#EE7A6F");
+            d3.select("#networkChart1").selectAll("*").remove();
+            console.log(d3.select(this).attr("x"))
+            getData(d3.select(this).attr("type"))
+        }
+
+        //mouseout event handler function
+        function onBarMouseOut(d) {
+            // use the text label class to remove label on mouseout
+            d3.select(this).attr('fill', "#80CBA2");
+            d3.selectAll('.val').remove()
+            d3.select("#networkChart1").selectAll("*").remove();
+            getData('total');
+        }
+
+        var orig_fill; // initialize the reset fill color variable
+        var orig_stroke; // initialize the rest stroke color variable
+        function handleMouseOver(d){
+            // This function handles the node/link highlight and tooltip content on mouse over
+            d3.selectAll(".zone").style("fill","white");
+
+            if (d3.select(this).attr("class") == "zone") {
+                var rect = d3.select(this).style("fill", function(d){
+                    if (d.total == 0){return ("#a7d5ed");}
+                    if (d.total > 10){return ("#c23728");}
+                    if (d.total > 7){return ("#e14b31");}
+                    if (d.total > 5){return ("#de6e56");}
+                    if (d.total > 2){return ("#e1a692");}
+                    if (d.total > 0){return ("#e2e2e2");}
+
+                });
+            }
+            
+            d3.select("#my_dataviz").selectAll("*").remove();
+            drawBarChart(d3.select(this).attr("zoneId"),  width, height)
+        }
+
+        function handleMouseOut(){
+            // This function the resets node/link attributes and tooltip properties on mouse out
+            d3.selectAll(".zone").style("fill", function(d){
+                    if (d.total == 0){return ("#a7d5ed");}
+                    if (d.total > 10){return ("#c23728");}
+                    if (d.total > 7){return ("#e14b31");}
+                    if (d.total > 5){return ("#de6e56");}
+                    if (d.total > 2){return ("#e1a692");}
+                    if (d.total > 0){return ("#e2e2e2");}
+                });
+            
+            d3.select("#my_dataviz").selectAll("*").remove();
+            drawBarChart('total',  width, height)
+        }
+        
+        getData('total');
+        drawBarChart('total',  width, height);
+    };
+    
+    window.onload = function() {
+        vizInit();
+    };
+
+    window.onresize = function() {
+        d3.select("#networkChart1").selectAll("*").remove();
+        d3.select("#my_dataviz").selectAll("*").remove();
+        vizInit();
+      };
+        
+</script>
+
+<title>SkillCorner Game Intelligence</title>
+</head>
+
+<body>
+    <div id="pn_container">
+        <p id="h1">SkillCorner Off-Ball Attacking Runs</p>
+        <div style = "position:absolute; left:0%; top:25%;">
+            <svg id="networkChart1"></svg>
+            
+        </div>
+        <div style = "position:absolute; right:0%; top:25%;">
+            <div id="my_dataviz"></div>
+        </div>
+    </div>
+
+</body>
+</html>
